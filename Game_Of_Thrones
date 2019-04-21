@@ -1,0 +1,56 @@
+---
+title: "Datos de Miércoles R4DS Español -17 de abril "
+output: md_document
+---
+### Cargando los datos
+```{r warning = FALSE}
+pantalla <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-04-17/tiempo_pantalla.csv")
+lealtades <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2019/2019-04-17/cambio_lealtades.csv")
+```
+### Explorando los datos
+# Explorando los datos
+library(dplyr)
+library(ggplot2)
+library(ggforce)
+
+
+```{r warning = FALSE}
+glimpse(pantalla)
+glimpse(lealtades)
+
+lealtad <- left_join(lealtades, pantalla, by = c("nombre"))
+glimpse(lealtad)
+
+# Cambio el nombre de las casas que dicen "Otra"
+lealtad$fin_t3 <- recode(lealtad$fin_t3, "Otra, Essos" = "Essos")
+lealtad$fin_t3 <- recode(lealtad$fin_t3, "Otra, Westeros" = "Westeros")
+lealtad$fin_t7 <- recode(lealtad$fin_t7, "Otra, Essos" = "Essos")
+lealtad$fin_t7 <- recode(lealtad$fin_t7, "Otra, Westeros" = "Westeros")
+```
+
+### Por último hago el gráfico, inspirado en @TuQmano
+
+```{r warning = FALSE
+cambios_lealtad <- lealtad %>%
+  group_by(fin_t3, fin_t7, origen) %>%
+  filter(fin_t3 != "Muerta/o", fin_t7 != "Muerta/o") %>% # Elimino los muertos
+  summarise(value = n()) %>%
+  ungroup() %>%
+  gather_set_data(1:3) %>%
+  print()
+
+cambios_lealtad <- cambios_lealtad %>%
+  select(origen, fin_t3, fin_t7, value, id, x, y) # Para ordenar las columnas
+
+library(ggthemes)
+ggplot(cambios_lealtad, aes(x, id = id, split = y, value = value)) + 
+  geom_parallel_sets(aes(fill = origen), alpha = 0.5, axis.width = 0.1) +
+  geom_parallel_sets_axes(axis.width = 0.4) +
+  geom_parallel_sets_labels(colour = 'white', angle = 0, size = 2.5) +
+  theme_fivethirtyeight() +
+  theme(axis.text.y = element_blank(),
+        panel.grid = element_blank()) +
+  labs(title = "Cambios de Lealtades Temps. 3 y 7 de GoT", 
+       subtitle = "#DatosDeMiércoles (por @sergiogarciamor inspired by @TuQmano)", 
+       caption = "Datos de @R4DS_es")
+```
