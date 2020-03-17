@@ -1,0 +1,136 @@
+---
+title: "DDM No. 41 - H1N1"
+subtitle: "Datos de Miércoles - #rstatsES"
+author: "Chechoid @sergiogarciamor"
+date: "17/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lubridate)
+
+# Configuración de temas de gráficos
+z <- theme(panel.background = element_blank(),
+           panel.grid.major.y = element_line(colour = "#F4F6F6"),
+           axis.title = element_blank(),
+           axis.line = element_line(colour = "grey"))
+
+# Datos
+h1n1 <- readr::read_csv("https://raw.githubusercontent.com/cienciadedatos/datos-de-miercoles/master/datos/2020/2020-03-11/h1n1.csv")
+
+confirmados <- readr::read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv")
+
+muertes <- readr::read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv")
+
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Datos de Miércoles - N° 41: H1N1
+### Quedate en casa por favor!!!
+
+Cuando inicié este ejercicio pensaba ponerme a prueba animando los gráficos, e incluso haciendo comparaciones cruzadas por países. Pero una vez que pude poner los datos en orden e hice la primera comparación de los datos de Argentina de la Gripe A y del Coronavirus, no quería dejar pasar la oportunidad de transmitir algo importante.
+
+En 2009, Argentina fue uno de los países con mayor cantidad de casos a nivel mundial (8°), y fue el 4° país con mayor cantidad de muertes. 
+
+```{r echo = FALSE}
+options(scipen = 999)
+
+h1n1 <- h1n1 %>%
+  mutate(tasa_mortalidad = muertes/casos)
+```
+```{r echo=TRUE}
+h1n1 %>%
+  filter(casos > 10) %>%
+  group_by(pais) %>%
+  summarise(total = sum(casos)) %>%
+  arrange(desc(total)) %>%
+  top_n(10) %>%
+  ggplot(aes(reorder(pais, total), weight = total)) +
+  geom_bar()+
+  coord_flip() +
+  labs(
+    title = "Ranking de países con Gripe H1N1",
+    subtitle = "Cantidad de Casos por país",
+    caption = #DatosDeMiércoles #rstatsES
+  ) + z
+```
+
+```{r echo=TRUE}
+h1n1 %>%
+  filter(muertes>0) %>%
+  group_by(pais) %>%
+  summarise(total = sum(muertes)) %>%
+  arrange(desc(total)) %>%
+  top_n(10) %>%
+  ggplot(aes(reorder(pais, total), weight = total)) +
+  geom_bar()+
+  coord_flip()+
+  labs(
+    title = "Ranking de países con Gripe H1N1",
+    subtitle = "Cantidad de Muertes por país",
+    caption = #DatosDeMiércoles #rstatsES
+  ) + z
+```
+
+En el caso de la Gripe A (H1N1), en Argentina hubo un crecimiento sostenido en la cantidad de casos, ocurriendo un salto grande entre el 15 de junio con 343 casos, **escalando hasta 1010** en sólo una semana.
+
+```{r echo = TRUE}
+h1n1_ar <- h1n1 %>%
+  filter(pais == 'Argentina') %>%
+  group_by(fecha_actualizacion) %>%
+  summarise(tot_casos = sum(casos),
+            tot_muertes = sum(muertes))
+
+ggplot(h1n1_ar, aes(x=fecha_actualizacion, y = tot_casos))+
+  geom_area(alpha=0.2, color = "#1F618D", fill ="#2980B9", size = 1.2)+
+  geom_area(aes(x=fecha_actualizacion, y = tot_muertes),alpha=0.2, color = "darkred", fill ="red", size = 1)+
+  labs(title = "Evolución Diaria de la Gripe A en Argentina en 2009",
+    subtitle = "Evolución de Casos y Muertes",
+    caption = "#DatosDeMiércoles #rstatsEs") + z
+```
+
+Con el Coronavirus, a diferencia de otros países (incluso de la región), la situación dentro de todo está bastante controlada, **aún a pesar de los imbéciles que se van de viaje, o que no respetan la cuarentena habiendo llegado de países considerados de riesgo**. Por eso me pareció importante comparar cómo escaló la situación de la Gripe A, y cómo todavía no tenemos muchos casos de Coronavirus para ayudar a concientizar a la gente que respete las medidas de prevención.
+
+```{r echo=FALSE}
+confirmados_long <- gather(confirmados, date, cant_casos, `1/22/20`:`3/16/20`, factor_key = FALSE)
+
+muertes_long <- gather(muertes, date, cant_muertes, `1/22/20`:`3/16/20`, factor_key = FALSE)
+
+covid <- left_join(confirmados_long, muertes_long)
+
+covid <- covid %>%
+  mutate(tasa_mortalidad = cant_muertes/cant_casos)
+
+covid$date <-  mdy(covid$date)
+
+library(reshape2)
+covid <- rename(covid, "country" = `Country/Region`)
+```
+```{r echo=TRUE}
+covid_ar <- covid %>%
+  filter(country == 'Argentina', date > '2020-03-01') %>%
+  group_by(date) %>%
+  summarise(casos = sum(cant_casos),
+            muertes = sum(cant_muertes),
+            tasa_letalidad = muertes/casos)
+
+ggplot(covid_ar,aes(x = date, y = casos)) +
+  geom_area(alpha=0.2, color = "#1F618D", fill ="#2980B9", size = 1.5, label = "Casos") +
+  geom_area(aes(x=date, y = muertes),alpha=0.2, color = "darkred", fill ="red", size = 1) +
+  labs(
+    title = "Evolución Diaria del Coronavirus en Argentina",
+    subtitle = "Evolución de Casos y Muertes",
+    caption = "#DatosDeMiércoles #rstatsEs"
+  ) + z
+```
+
+Estas fueron las cantidades de casos en Argentina durante los primeros 15 días de cada gripe:
+
+* H1N1: 918 casos
+* COVID-19: 56 casos
+
+Por eso, hoy más que nunca:
+
+'Quedate en casa!': ![](https://i.redd.it/37z75slyx3m41.jpg)
