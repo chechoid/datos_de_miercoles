@@ -125,12 +125,14 @@ ggplot(covid_ar,aes(x = date, y = casos)) +
     caption = "#DatosDeMiércoles #rstatsEs"
   ) + z
 ```
-
-Estas fueron las cantidades de casos en Argentina durante los primeros 15 días de cada gripe:
-
-* H1N1: 918 casos
-* COVID-19: 56 casos
-
-Por eso, hoy más que nunca:
+```{r echo=FALSE}
+ar_covid <- covid %>%
+  filter(country == 'Argentina') %>%
+  summarise(casos_covid = max(cant_casos),
+            muertes_covid = max(cant_muertes),
+            tasa_letalidad = muertes_covid/casos_covid)
+casos_ar <- max(ar_covid$casos_covid)
+```
+En los primeros 15 días de la Gripe H1N1 tuvimos 918 casos. Actualmente por COVID-19 tenemos *`r casos_ar` casos*. Por eso, hoy más que nunca:
 
 'Quedate en casa!': ![](https://i.redd.it/37z75slyx3m41.jpg)
