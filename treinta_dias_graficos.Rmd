@@ -1,0 +1,77 @@
+---
+title: "30 días de gráficos"
+output:
+  html_document:
+    df_print: paged
+include_graphics: yes
+---
+
+## Librerías
+
+```{r librerias, message=FALSE}
+library(googlesheets4)
+library(gargle)
+library(tidyverse)
+```
+
+## Datos
+
+Tomamos los datos de la Encuesta de Sueldos de Sysarmy que publican en su [blog]("https://sysarmy.com/blog/posts/resultados-de-la-encuesta-de-sueldos-2020-1/").
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+sheets_deauth()
+options(scipen = 999) # Cambia la notación científica de los gráficos
+```
+```{r echo=TRUE, cache=TRUE}
+encuesta_sysarmy <- sheets_read("1_db6zEAMvr-1GQjJb4hV-rSQfJ9w6GmezbqKJ2JJn7I", skip = 9)
+```
+
+## Preprocesamiento
+
+Selecciono las columnas de género, puesto y sueldo bruto, con sus nombres cambiados para facilitar el trabajo.
+
+```{r}
+analisis_r30 <- encuesta_sysarmy %>%
+  select('Me identifico', 'Trabajo de', `Salario mensual BRUTO (en tu moneda local)`)%>%
+  rename(Genero = 'Me identifico', 
+         Puesto = 'Trabajo de',
+         Sueldo_Bruto = `Salario mensual BRUTO (en tu moneda local)`)
+```
+
+Luego, filtro los 10 puestos que tienen más contribuciones.
+```{r}
+top_10_puestos <- analisis_r30 %>%
+  select(Puesto, Genero, Sueldo_Bruto) %>%
+  filter(Genero != "Otros") %>%
+  group_by(Puesto) %>%
+  tally(sort = TRUE) %>% 
+  top_n(10) %>%
+  select(Puesto)
+top_10_puestos <- as.vector(top_10_puestos$Puesto)
+```
+
+## Gráfico
+
+```{r}
+gen_col <- c("#85C1E9", "#B14BDA")
+analisis_r30 %>%
+  filter(Puesto %in% top_10_puestos & Genero != "Otros") %>%
+  mutate(Genero = factor(Genero, levels = c("Hombre", "Mujer"))) %>%
+  group_by(Puesto, Genero) %>%
+  summarise(Sueldo_Promedio = mean(Sueldo_Bruto)) %>%
+  ungroup() %>% 
+  ggplot(aes(x = reorder(Puesto, Sueldo_Promedio), y = Sueldo_Promedio, fill = Genero))+
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = gen_col)+
+  scale_y_continuous(labels = scales::comma_format(big.mark = ".", decimal.mark = ",")) +
+  coord_flip()+
+  labs(title = "Sueldo bruto promedio por puesto y género (en AR$)",
+       subtitle = "Fuente: Encuesta de Sueldos de Sysarmy",
+      caption = "#30díasdegráficos",
+       x = "",
+       y = "") +
+  theme(panel.background = element_blank(),
+        panel.grid.major.x = element_line(colour = "#D7DBDD"))
+```
+
+
