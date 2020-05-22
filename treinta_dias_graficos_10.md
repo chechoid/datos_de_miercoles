@@ -23,7 +23,7 @@ library(scales)
 library(extrafont) # la primera vez ejecutar font_import()
 
 loadfonts()
-font <- "Ubuntu Mono Normal"
+font <- "Leelawadee UI"
 ```
 
 ## Datos
@@ -203,7 +203,7 @@ analisis_r30 %>%
   coord_flip()+
   theme(panel.background = element_blank(),
         panel.grid.major.x = element_line(colour = "#D7DBDD"),
-        text = element_text(family = "Ubuntu Mono Normal"))+
+        text = element_text(family = "Leelawadee UI"))+
   labs(title = "Sueldo bruto promedio por puesto y género (en AR$)",
        subtitle = "Fuente: Encuesta de Sueldos de Sysarmy",
       caption = "#30díasdegráficos",
